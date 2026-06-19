@@ -7,8 +7,8 @@ either **manually** or on an **automatic schedule** you can toggle on/off.
 - **Frontend:** React + Vite (`src/`)
 - **Backend:** Express API + node-cron scheduler + nodemailer (`server/`)
 - **Data:** pulled **live from the PFL Partners API** (`server/pflClient.js`),
-  then editable in the UI and persisted to `server/data.json`. Mock seed data
-  (`server/mockData.js`) is used only until the first PFL refresh.
+  then editable in the UI and persisted to `server/data.json`. The working store
+  starts empty until the first PFL refresh populates it.
 
 ## How it works
 
@@ -141,4 +141,4 @@ All routes are under `/api` and (when `API_TOKEN` is set) require
 | GET    | `/api/seasons`   | Available PFL seasons (live)             |
 | POST   | `/api/refresh`   | Pull from PFL (`{what,seasonId,lineupLimit}`) |
 | POST   | `/api/send`      | Send now (optional `{recipients,include}`)|
-| POST   | `/api/reset`     | Reset data back to seed                  |
+| POST   | `/api/reset`     | Reset working store to empty             |

@@ -24,6 +24,11 @@ export default function SettingsPanel({
   const [local, setLocal] = useState(settings);
   const [tokenInput, setTokenInput] = useState(token);
   const [recipientsText, setRecipientsText] = useState((settings.recipients || []).join('\n'));
+  const [protocolRecipientsText, setProtocolRecipientsText] = useState(
+    (settings.protocolRecipients || []).join('\n')
+  );
+  const [testMatchId, setTestMatchId] = useState('');
+  const [protoMsg, setProtoMsg] = useState(null);
   const [seasons, setSeasons] = useState([]);
 
   useEffect(() => {
@@ -33,15 +38,49 @@ export default function SettingsPanel({
   const patch = (p) => setLocal((s) => ({ ...s, ...p }));
   const toggleInclude = (k) => patch({ include: { ...local.include, [k]: !local.include[k] } });
 
-  const save = () => {
-    const recipients = recipientsText
+  const parseEmails = (text) =>
+    text
       .split(/[\n,;]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    onSaveSettings({ ...local, recipients });
+
+  const save = () => {
+    onSaveSettings({
+      ...local,
+      recipients: parseEmails(recipientsText),
+      protocolRecipients: parseEmails(protocolRecipientsText),
+    });
+  };
+
+  const sendTestProtocol = async () => {
+    setProtoMsg(null);
+    const id = Number(testMatchId);
+    if (!id) return setProtoMsg({ kind: 'err', text: 'Düzgün matchId daxil edin' });
+    try {
+      const r = await api.sendProtocol({ matchId: id });
+      setProtoMsg({ kind: 'ok', text: `Göndərildi → ${r.to.join(', ')}` });
+    } catch (err) {
+      setProtoMsg({ kind: 'err', text: err.message });
+    }
+  };
+
+  const runWatchNow = async () => {
+    setProtoMsg(null);
+    try {
+      const r = await api.runProtocolWatch();
+      if (r.skipped) setProtoMsg({ kind: 'err', text: `Ötürüldü: ${r.skipped}` });
+      else
+        setProtoMsg({
+          kind: 'ok',
+          text: `Yoxlanıldı: ${r.checked} oyun, göndərildi: ${r.sent.length}`,
+        });
+    } catch (err) {
+      setProtoMsg({ kind: 'err', text: err.message });
+    }
   };
 
   const last = status?.lastSend;
+  const lastProtocol = status?.lastProtocolSend;
 
   return (
     <div className="settings-grid">
@@ -100,6 +139,110 @@ export default function SettingsPanel({
             </label>
           ))}
         </fieldset>
+      </section>
+
+      <section className="card">
+        <h3>Protokol bildirişləri (75 dəq əvvəl)</h3>
+        <p className="hint">
+          Oyundan əvvəl protokol (start heyət, ehtiyat, məşqçilər, hakimlər) yayımlanan kimi
+          avtomatik Outlook məktubu göndərir. Hər oyun üçün yalnız bir dəfə göndərilir.
+        </p>
+        <label className="switch-row">
+          <input
+            type="checkbox"
+            checked={!!local.protocolWatch}
+            onChange={(e) => patch({ protocolWatch: e.target.checked })}
+          />
+          <span>Protokol izləyici {local.protocolWatch ? 'AKTİV' : 'SÖNDÜRÜLÜB'}</span>
+        </label>
+
+        <label className="field">
+          Yoxlama tezliyi (cron)
+          <select
+            value={local.protocolPollCron}
+            onChange={(e) => patch({ protocolPollCron: e.target.value })}
+          >
+            {[
+              { label: 'Hər 5 dəqiqə', value: '*/5 * * * *' },
+              { label: 'Hər 10 dəqiqə', value: '*/10 * * * *' },
+              { label: 'Hər 15 dəqiqə', value: '*/15 * * * *' },
+              { label: 'Hər dəqiqə', value: '* * * * *' },
+            ].map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label} — {p.value}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field">
+          Oyundan neçə dəqiqə əvvəl izləməyə başlasın
+          <input
+            type="number"
+            min={15}
+            max={240}
+            value={local.protocolLeadMin ?? 90}
+            onChange={(e) => patch({ protocolLeadMin: Number(e.target.value) })}
+          />
+        </label>
+
+        <label className="field">
+          Alıcılar (boş buraxsanız əsas alıcılara göndərilir)
+          <textarea
+            rows={3}
+            value={protocolRecipientsText}
+            onChange={(e) => setProtocolRecipientsText(e.target.value)}
+            placeholder="ad@nümunə.az"
+          />
+        </label>
+
+        <button className="btn primary" onClick={save} disabled={busy}>
+          Parametrləri yadda saxla
+        </button>
+
+        <div className="token-row" style={{ marginTop: 12 }}>
+          <input
+            type="number"
+            value={testMatchId}
+            onChange={(e) => setTestMatchId(e.target.value)}
+            placeholder="Test: matchId"
+          />
+          <button className="btn ghost" onClick={sendTestProtocol}>
+            Test göndər
+          </button>
+          <button className="btn ghost" onClick={runWatchNow}>
+            İndi yoxla
+          </button>
+        </div>
+        {protoMsg && (
+          <p className={protoMsg.kind === 'ok' ? 'ok' : 'err'} style={{ marginTop: 8 }}>
+            {protoMsg.text}
+          </p>
+        )}
+
+        <div className="status" style={{ marginTop: 12 }}>
+          <div>
+            <strong>İzləyici:</strong>{' '}
+            {status?.protocolWatch?.active ? (
+              <span className="ok">aktiv ({status.protocolWatch.cron})</span>
+            ) : (
+              <span className="muted">söndürülüb</span>
+            )}
+          </div>
+          <div>
+            <strong>Son protokol göndərmə:</strong>{' '}
+            {lastProtocol ? (
+              <span className={lastProtocol.ok ? 'ok' : 'err'}>
+                {new Date(lastProtocol.at).toLocaleString('az-AZ')} —{' '}
+                {lastProtocol.ok
+                  ? `${lastProtocol.match || lastProtocol.matchId} → ${lastProtocol.to.join(', ')}`
+                  : `Xəta: ${lastProtocol.error}`}
+              </span>
+            ) : (
+              <span className="muted">hələ yoxdur</span>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="card">

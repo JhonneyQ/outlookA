@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api, getToken, setToken } from './api.js';
 import EditableTable from './components/EditableTable.jsx';
 import LineupsEditor from './components/LineupsEditor.jsx';
+import ProtocolViewer from './components/ProtocolViewer.jsx';
 import SettingsPanel from './components/SettingsPanel.jsx';
 import './App.css';
 
@@ -9,6 +10,7 @@ const TABS = [
   { id: 'players', label: 'Futbolçular' },
   { id: 'lineups', label: 'Heyətlər' },
   { id: 'fixtures', label: 'Təqvim' },
+  { id: 'protocols', label: 'Protokollar' },
   { id: 'settings', label: 'Parametrlər' },
 ];
 
@@ -201,6 +203,15 @@ export default function App() {
               makeRow={newFixture}
             />
           </Pane>
+        )}
+
+        {tab === 'protocols' && (
+          <section className="pane">
+            <div className="pane-head">
+              <h2>Protokollar (köhnə oyunlar daxil)</h2>
+            </div>
+            <ProtocolViewer fixtures={fixtures} flash={flash} />
+          </section>
         )}
 
         {tab === 'settings' && settings && (

@@ -6,7 +6,6 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { seedData } from './mockData.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = join(__dirname, 'data.json');
@@ -22,15 +21,29 @@ const DEFAULT_SETTINGS = {
   seasonId: 72, // active season "2025-2026" (see GET /seasons)
   lineupLimit: 20, // max matches to pull lineups for per refresh
   autoRefresh: true, // pull fresh PFL data before each scheduled send
+
+  // --- Protocol watcher: e-mail each match's protocol once it's published ---
+  protocolWatch: false, // master toggle for the protocol watcher
+  protocolPollCron: '*/5 * * * *', // how often to poll for new protocols
+  protocolLeadMin: 90, // start watching a match this many minutes before kickoff
+  protocolMinute: 75, // snapshot `minute` query param sent to the protocol endpoint
+  protocolRecipients: [], // optional override; falls back to `recipients` when empty
 };
 
 function defaultState() {
   return {
-    players: seedData.players,
-    lineups: seedData.lineups,
-    fixtures: seedData.fixtures,
+    // Empty until the first PFL refresh populates the working store.
+    players: [],
+    lineups: [],
+    fixtures: [],
+    // Editable protocol snapshots, keyed by matchId. Seeded from PFL the first
+    // time a protocol is fetched/saved, then editable & persisted like the rest.
+    protocols: {},
     settings: { ...DEFAULT_SETTINGS },
     lastSend: null, // { at, ok, to, error }
+    lastProtocolSend: null, // { at, ok, to, matchId, error }
+    lastProtocolWatch: null, // { at, checked, sent: [matchId] }
+    notifiedProtocols: [], // matchIds already e-mailed, so we never double-send
   };
 }
 
@@ -77,6 +90,39 @@ export const store = {
     state.lastSend = result;
     persist();
     return state.lastSend;
+  },
+  recordProtocolSend(result) {
+    state.lastProtocolSend = result;
+    persist();
+    return state.lastProtocolSend;
+  },
+  // --- Editable protocol snapshots (keyed by matchId, persisted) -----------
+  getProtocol(matchId) {
+    return state.protocols?.[String(matchId)] || null;
+  },
+  setProtocol(matchId, data) {
+    if (!state.protocols) state.protocols = {};
+    state.protocols[String(matchId)] = data;
+    persist();
+    return state.protocols[String(matchId)];
+  },
+  deleteProtocol(matchId) {
+    if (state.protocols) {
+      delete state.protocols[String(matchId)];
+      persist();
+    }
+    return true;
+  },
+  isProtocolNotified(matchId) {
+    return (state.notifiedProtocols || []).includes(matchId);
+  },
+  markProtocolNotified(matchId) {
+    if (!state.notifiedProtocols) state.notifiedProtocols = [];
+    if (!state.notifiedProtocols.includes(matchId)) {
+      state.notifiedProtocols.push(matchId);
+      persist();
+    }
+    return state.notifiedProtocols;
   },
   reset() {
     state = defaultState();

@@ -151,6 +151,108 @@ export async function fetchMatchLineup(matchId) {
   };
 }
 
+// --- Match protocol --------------------------------------------------------
+// The protocol snapshot published ~75 min before kickoff: both teams' coach,
+// starting XI and substitutes, plus the match officials (referees, VAR, …).
+
+const mapProtocolPlayer = (p) => ({
+  id: p.id,
+  firstName: (p.firstName || '').trim(),
+  lastName: (p.lastName || '').trim(),
+  fullName: (p.fullName || `${p.firstName || ''} ${p.lastName || ''}`).trim(),
+  position: p.position || '',
+  shirtNumber: p.shirtNumber ?? 0,
+  captain: !!p.captain,
+  goalkeeper: !!p.goalkeeper,
+  photo: p.photo || '',
+});
+
+const mapProtocolTeam = (t) => ({
+  id: t?.id ?? null,
+  name: t?.name || '',
+  coach: t?.coach || '',
+  startingLineup: (t?.startingLineup || []).map(mapProtocolPlayer),
+  substitutes: (t?.substitutes || []).map(mapProtocolPlayer),
+});
+
+const mapEventPlayer = (p) =>
+  p
+    ? {
+        id: p.id,
+        fullName: (p.fullName || `${p.firstName || ''} ${p.lastName || ''}`).trim(),
+      }
+    : null;
+
+const mapProtocolEvent = (e) => ({
+  id: e.id,
+  type: e.type || '',
+  minute: e.minute ?? '',
+  teamId: e.teamId ?? null,
+  teamName: e.teamName || '',
+  player: mapEventPlayer(e.player),
+  secondPlayer: mapEventPlayer(e.secondPlayer),
+  goalType: e.goalType || '',
+  reason: e.reason || '',
+});
+
+const mapProtocolEvents = (ev = {}) => ({
+  goals: (ev.goals || []).map(mapProtocolEvent),
+  yellowCards: (ev.yellowCards || []).map(mapProtocolEvent),
+  redCards: (ev.redCards || []).map(mapProtocolEvent),
+  secondYellowCards: (ev.secondYellowCards || []).map(mapProtocolEvent),
+  substitutions: (ev.substitutions || []).map(mapProtocolEvent),
+});
+
+// Fetch a match protocol. `minute` is the in-game snapshot minute the PFL API
+// uses to exclude later events (defaults to 75); it is unrelated to how long
+// before kickoff the lineup is published. Returns the mapped protocol plus a
+// `published` flag — true once the lineups (or the PDF) are actually available.
+export async function fetchMatchProtocol(matchId, { minute = 75 } = {}) {
+  const body = await get(`/matches/${matchId}/protocol`, { minute });
+  const d = body?.data || {};
+  const m = d.match || {};
+  const o = d.officials || {};
+
+  const protocol = {
+    matchId: d.matchId ?? matchId,
+    minute: d.minute ?? minute,
+    protocolPdfUrl: d.protocolPdfUrl || '',
+    match: {
+      date: m.date || '',
+      kickoffTime: m.kickoffTime || '',
+      stadium: m.stadium || '',
+      spectator: m.spectator ?? null,
+      round: m.round ?? '',
+      season: m.season || '',
+      status: m.status || '',
+      score: {
+        home: m.score?.home ?? null,
+        away: m.score?.away ?? null,
+        penalty: m.score?.penalty || '',
+      },
+      homeTeam: mapProtocolTeam(m.homeTeam),
+      awayTeam: mapProtocolTeam(m.awayTeam),
+    },
+    officials: {
+      mainReferee: o.mainReferee || '',
+      assistantReferees: Array.isArray(o.assistantReferees) ? o.assistantReferees : [],
+      fourthReferee: o.fourthReferee || '',
+      var: o.var || '',
+      avar: o.avar || '',
+      refereeInspector: o.refereeInspector || '',
+      affaDelegate: o.affaDelegate || '',
+    },
+    events: mapProtocolEvents(d.events),
+  };
+
+  const published =
+    !!protocol.protocolPdfUrl ||
+    (protocol.match.homeTeam.startingLineup.length > 0 &&
+      protocol.match.awayTeam.startingLineup.length > 0);
+
+  return { protocol, published };
+}
+
 // Build the Lineups dataset for a set of fixtures (each becomes one match block).
 // Runs with limited concurrency and keeps only matches that actually have a
 // published lineup. `limit` caps how many matches we touch in one refresh.

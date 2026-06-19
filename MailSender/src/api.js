@@ -38,4 +38,12 @@ export const api = {
   reset: () => request('/reset', { method: 'POST' }),
   getSeasons: () => request('/seasons'),
   refresh: (payload) => request('/refresh', { method: 'POST', body: payload || { what: 'all' } }),
+  // Match protocol (75-min-before-kickoff notifications)
+  getProtocol: (matchId, minute) =>
+    request(`/matches/${matchId}/protocol${minute ? `?minute=${minute}` : ''}`),
+  getStoredProtocol: (matchId) => request(`/protocols/${matchId}`),
+  saveProtocol: (matchId, data) => request(`/protocols/${matchId}`, { method: 'PUT', body: data }),
+  deleteStoredProtocol: (matchId) => request(`/protocols/${matchId}`, { method: 'DELETE' }),
+  sendProtocol: (payload) => request('/protocol/send', { method: 'POST', body: payload }),
+  runProtocolWatch: () => request('/protocol/run', { method: 'POST' }),
 };

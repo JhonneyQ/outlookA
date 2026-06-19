@@ -140,6 +140,77 @@ body {
 .status .err { color: var(--err); }
 .status .muted { color: var(--muted); }
 
+/* Protocol viewer */
+.protocol-view { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+.protocol-list { padding: 14px; max-height: 70vh; display: flex; flex-direction: column; }
+.protocol-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.protocol-filters .search { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+.protocol-filters .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.protocol-rows { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.protocol-row {
+  text-align: left; border: 1px solid transparent; background: none; cursor: pointer;
+  padding: 9px 10px; border-radius: 9px; display: flex; flex-direction: column; gap: 3px;
+}
+.protocol-row:hover { background: var(--soft); }
+.protocol-row.active { background: #eff6ff; border-color: var(--brand); }
+.pr-teams { font-weight: 600; font-size: 14px; }
+.pr-meta { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.pr-status { margin-left: auto; font-weight: 700; padding: 1px 8px; border-radius: 999px; font-size: 11px; background: var(--soft); }
+.pr-status.s-finished { background: #dcfce7; color: var(--ok); }
+.pr-status.s-pending { background: #fef9c3; color: #a16207; }
+.pr-status.s-started, .pr-status.s-paused { background: #dbeafe; color: var(--brand); }
+
+.protocol-detail { padding: 18px 20px; min-height: 200px; }
+.pd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pd-head h3 { margin: 0; font-size: 19px; }
+.pd-score { margin-left: 10px; font-weight: 800; color: var(--brand-d); }
+.pd-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.pd-actions .btn.ghost { text-decoration: none; }
+.warn { background: #fef9c3; color: #a16207; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+
+.src-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-left: 10px; vertical-align: middle; }
+.src-badge.live { background: #dbeafe; color: var(--brand); }
+.src-badge.stored { background: #dcfce7; color: var(--ok); }
+
+.json-edit { margin-top: 12px; }
+.json-edit textarea {
+  width: 100%; min-height: 420px; border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 14px; font-family: 'Consolas', 'SFMono-Regular', Menlo, monospace;
+  font-size: 13px; line-height: 1.5; color: var(--ink); resize: vertical;
+  white-space: pre; tab-size: 2;
+}
+.json-edit textarea:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
+
+.pd-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 8px 0 4px; }
+.team-card h4 { margin: 10px 0 4px; color: var(--brand-d); font-size: 16px; }
+.team-card h5 { margin: 12px 0 4px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.team-card .coach { margin: 0; font-size: 14px; color: var(--ink); }
+.team-card .pl { list-style: none; margin: 0; padding: 0; }
+.team-card .pl li { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--soft); font-size: 14px; }
+.team-card .pl li.muted { color: var(--muted); border: none; }
+.team-card .num { width: 26px; text-align: center; font-weight: 700; color: var(--muted); }
+.team-card .nm { flex: 1; }
+.team-card .pos { color: var(--muted); font-size: 12px; }
+.team-card .badge { font-style: normal; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
+.team-card .badge.cap { background: #fde68a; color: #92400e; }
+.team-card .badge.gk { background: #bbf7d0; color: #166534; }
+
+.pd-section { margin-top: 18px; }
+.pd-section h4 { margin: 0 0 6px; font-size: 15px; }
+.officials { border-collapse: collapse; }
+.officials th { text-align: left; padding: 5px 14px 5px 0; color: var(--muted); font-weight: 600; white-space: nowrap; vertical-align: top; }
+.officials td { padding: 5px 0; }
+.events { list-style: none; margin: 0; padding: 0; }
+.events li { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--soft); font-size: 14px; }
+.ev-min { width: 36px; color: var(--muted); font-weight: 700; text-align: right; }
+.ev-ico { width: 24px; text-align: center; }
+.ev-team { color: var(--muted); font-size: 12px; }
+
+@media (max-width: 860px) {
+  .protocol-view { grid-template-columns: 1fr; }
+  .pd-teams { grid-template-columns: 1fr; }
+}
+
 /* Toast */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
