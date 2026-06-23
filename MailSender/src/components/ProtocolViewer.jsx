@@ -23,7 +23,7 @@ const EVENT_ICON = {
   substitution: '🔁',
 };
 
-export default function ProtocolViewer({ fixtures, flash }) {
+export default function ProtocolViewer({ fixtures, flash, onSent }) {
   const [search, setSearch] = useState('');
   const [onlyFinished, setOnlyFinished] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -38,6 +38,9 @@ export default function ProtocolViewer({ fixtures, flash }) {
   const [jsonText, setJsonText] = useState('');
   const [jsonErr, setJsonErr] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Recipient(s) for the test send — typed per send, never hardcoded.
+  const [mailTo, setMailTo] = useState('');
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -152,10 +155,19 @@ export default function ProtocolViewer({ fixtures, flash }) {
   };
 
   const sendMail = async () => {
+    const recipients = mailTo
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     setSending(true);
     try {
-      const r = await api.sendProtocol({ matchId: selected });
+      // Empty field → backend falls back to the configured recipients.
+      const r = await api.sendProtocol({
+        matchId: selected,
+        recipients: recipients.length ? recipients : undefined,
+      });
       flash(`Göndərildi → ${r.to.join(', ')}`);
+      onSent?.();
     } catch (err) {
       flash(`Göndərmə xətası: ${err.message}`, 'err');
     } finally {
@@ -221,6 +233,8 @@ export default function ProtocolViewer({ fixtures, flash }) {
               editing={editing}
               saving={saving}
               sending={sending}
+              mailTo={mailTo}
+              onMailToChange={setMailTo}
               onSaveAsInitial={saveAsInitial}
               onStartEdit={startEdit}
               onSaveEdit={saveEdit}
@@ -258,6 +272,8 @@ function Header({
   editing,
   saving,
   sending,
+  mailTo,
+  onMailToChange,
   onSaveAsInitial,
   onStartEdit,
   onSaveEdit,
@@ -330,9 +346,18 @@ function Header({
                   🗑 Saxlanmışı sil
                 </button>
               )}
-              <button className="btn send" onClick={onSend} disabled={sending}>
-                {sending ? 'Göndərilir…' : '✉ Mailə göndər'}
-              </button>
+              <span className="send-box">
+                <input
+                  type="email"
+                  className="mail-to"
+                  value={mailTo}
+                  onChange={(e) => onMailToChange(e.target.value)}
+                  placeholder="alıcı e-poçt (boş = Parametrlərdəki)"
+                />
+                <button className="btn send" onClick={onSend} disabled={sending}>
+                  {sending ? 'Göndərilir…' : '✉ Göndər'}
+                </button>
+              </span>
             </>
           )}
         </div>

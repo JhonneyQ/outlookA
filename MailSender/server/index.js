@@ -21,6 +21,7 @@ import { fetchSeasons, fetchMatchProtocol, pflConfigured } from './pflClient.js'
 import { sendMatchProtocol } from './service.js';
 import { mailProvider } from './mailer.js';
 import { graphConfigured } from './graphMailer.js';
+import { smtp2goConfigured } from './smtp2goMailer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -59,7 +60,12 @@ app.get('/api/status', (_req, res) =>
     protocolWatch: protocolWatchStatus(),
     pflConfigured: pflConfigured(),
     mailProvider: mailProvider(),
-    mailReady: mailProvider() === 'graph' ? graphConfigured() : !!(process.env.SMTP_USER && process.env.SMTP_PASS),
+    mailReady:
+      mailProvider() === 'graph'
+        ? graphConfigured()
+        : mailProvider() === 'smtp2go'
+          ? smtp2goConfigured()
+          : !!(process.env.SMTP_USER && process.env.SMTP_PASS),
     mailSender: process.env.MAIL_SENDER || process.env.MAIL_FROM || process.env.SMTP_USER || null,
   })
 );

@@ -8,6 +8,7 @@
 
 import nodemailer from 'nodemailer';
 import { graphConfigured, sendViaGraph } from './graphMailer.js';
+import { smtp2goConfigured, sendViaSmtp2go } from './smtp2goMailer.js';
 
 let transporter = null;
 
@@ -30,11 +31,14 @@ export function getTransporter() {
   return transporter;
 }
 
-// Which transport to use. Defaults to Graph when its env vars exist.
+// Which transport to use. An explicit MAIL_PROVIDER wins; otherwise auto-detect
+// from whichever credentials are present (Graph → SMTP2GO → SMTP).
 export function mailProvider() {
   const forced = (process.env.MAIL_PROVIDER || '').toLowerCase();
-  if (forced === 'graph' || forced === 'smtp') return forced;
-  return graphConfigured() ? 'graph' : 'smtp';
+  if (['graph', 'smtp', 'smtp2go'].includes(forced)) return forced;
+  if (graphConfigured()) return 'graph';
+  if (smtp2goConfigured()) return 'smtp2go';
+  return 'smtp';
 }
 
 const esc = (v) =>
@@ -208,7 +212,9 @@ export function buildEmailHtml({ players, lineups, fixtures }, include) {
 }
 
 export async function sendMail({ to, subject, html }) {
-  if (mailProvider() === 'graph') {
+  const provider = mailProvider();
+
+  if (provider === 'graph') {
     if (!graphConfigured()) {
       throw new Error(
         'Microsoft Graph is selected but not configured. Set MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET and MAIL_SENDER in .env.'
@@ -216,6 +222,14 @@ export async function sendMail({ to, subject, html }) {
     }
     return sendViaGraph({ to, subject, html });
   }
+
+  if (provider === 'smtp2go') {
+    if (!smtp2goConfigured()) {
+      throw new Error('SMTP2GO is selected but SMTP2GO_API_KEY is not set in .env.');
+    }
+    return sendViaSmtp2go({ to, subject, html });
+  }
+
   const tx = getTransporter();
   const from = process.env.MAIL_FROM || process.env.SMTP_USER;
   const recipients = Array.isArray(to) ? to.join(', ') : to;

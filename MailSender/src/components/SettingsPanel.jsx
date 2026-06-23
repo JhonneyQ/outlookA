@@ -19,6 +19,7 @@ export default function SettingsPanel({
   onSaveToken,
   status,
   onSendNow,
+  onReloadStatus,
   busy,
 }) {
   const [local, setLocal] = useState(settings);
@@ -59,6 +60,7 @@ export default function SettingsPanel({
     try {
       const r = await api.sendProtocol({ matchId: id });
       setProtoMsg({ kind: 'ok', text: `Göndərildi → ${r.to.join(', ')}` });
+      onReloadStatus?.();
     } catch (err) {
       setProtoMsg({ kind: 'err', text: err.message });
     }
@@ -69,11 +71,13 @@ export default function SettingsPanel({
     try {
       const r = await api.runProtocolWatch();
       if (r.skipped) setProtoMsg({ kind: 'err', text: `Ötürüldü: ${r.skipped}` });
-      else
+      else {
         setProtoMsg({
           kind: 'ok',
           text: `Yoxlanıldı: ${r.checked} oyun, göndərildi: ${r.sent.length}`,
         });
+        onReloadStatus?.();
+      }
     } catch (err) {
       setProtoMsg({ kind: 'err', text: err.message });
     }
@@ -326,7 +330,10 @@ export default function SettingsPanel({
           <div>
             <strong>Poçt kanalı:</strong>{' '}
             <span className={status?.mailReady ? 'ok' : 'err'}>
-              {status?.mailProvider === 'graph' ? 'Microsoft Graph' : 'SMTP'} —{' '}
+              {{ graph: 'Microsoft Graph', smtp2go: 'SMTP2GO', smtp: 'SMTP' }[
+                status?.mailProvider
+              ] || 'SMTP'}{' '}
+              —{' '}
               {status?.mailReady ? `hazırdır (${status?.mailSender || ''})` : 'konfiqurasiya tələb olunur'}
             </span>
           </div>

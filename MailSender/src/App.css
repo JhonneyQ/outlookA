@@ -168,6 +168,13 @@ body {
 .pd-actions .btn.ghost { text-decoration: none; }
 .warn { background: #fef9c3; color: #a16207; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 
+.send-box { display: inline-flex; gap: 6px; align-items: center; }
+.send-box .mail-to {
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
+  font-size: 13px; font-family: inherit; min-width: 240px;
+}
+.send-box .mail-to:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
+
 .src-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-left: 10px; vertical-align: middle; }
 .src-badge.live { background: #dbeafe; color: var(--brand); }
 .src-badge.stored { background: #dcfce7; color: var(--ok); }

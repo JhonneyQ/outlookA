@@ -69,6 +69,12 @@ export default function App() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Refresh just the status block (last send / scheduler / mail readiness),
+  // e.g. after a protocol or test send so the displayed "last send" is current.
+  const reloadStatus = useCallback(() => {
+    api.getStatus().then(setStatus).catch(() => {});
+  }, []);
+
   const markDirty = (key) => setDirty((d) => ({ ...d, [key]: true }));
 
   const saveData = async (key) => {
@@ -210,7 +216,7 @@ export default function App() {
             <div className="pane-head">
               <h2>Protokollar (köhnə oyunlar daxil)</h2>
             </div>
-            <ProtocolViewer fixtures={fixtures} flash={flash} />
+            <ProtocolViewer fixtures={fixtures} flash={flash} onSent={reloadStatus} />
           </section>
         )}
 
@@ -222,6 +228,7 @@ export default function App() {
             onSaveToken={saveTokenVal}
             status={status}
             onSendNow={sendNow}
+            onReloadStatus={reloadStatus}
             busy={busy}
           />
         )}
