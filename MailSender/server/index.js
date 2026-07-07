@@ -175,6 +175,7 @@ if (existsSync(dist)) {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`[server] AFFA Fantasy MailSender API on http://localhost:${PORT}`);
+  // console.log(process.env.PFL_ACCESS_TOKEN);
   reschedule(); // start digest scheduler according to persisted settings
   rescheduleProtocolWatch(); // start protocol watcher according to persisted settings
 });

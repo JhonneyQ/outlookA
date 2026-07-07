@@ -3,6 +3,7 @@
 // with every request (matches the backend's API_TOKEN guard).
 
 const TOKEN_KEY = 'affa_api_token';
+const BASE_URL = `http://localhost:5000`;
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY) || '';
 export const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
@@ -12,7 +13,7 @@ async function request(path, { method = 'GET', body } = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${BASE_URL}/api${path}`, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
