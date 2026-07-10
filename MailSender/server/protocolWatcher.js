@@ -42,7 +42,10 @@ export async function runProtocolWatch({ force = false } = {}) {
     // fetch fails so a transient PFL outage doesn't stop the watcher.
     let fixtures;
     try {
-      ({ fixtures } = await fetchFixtures({ seasonId: s.seasonId }));
+      // league_id restricts the candidate matches to Premier Liq — PFL fixtures
+      // carry no league field, so this filter param is the only way to exclude
+      // the reserve/lower-division matches from protocol notifications.
+      ({ fixtures } = await fetchFixtures({ seasonId: s.seasonId, leagueId: s.protocolLeagueId }));
     } catch (err) {
       console.warn('[protocol-watch] fixtures fetch failed, using stored copy:', err.message);
       fixtures = store.get('fixtures') || [];

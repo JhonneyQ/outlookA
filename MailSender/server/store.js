@@ -28,6 +28,10 @@ const DEFAULT_SETTINGS = {
   protocolLeadMin: 90, // start watching a match this many minutes before kickoff
   protocolMinute: 75, // snapshot `minute` query param sent to the protocol endpoint
   protocolRecipients: [], // optional override; falls back to `recipients` when empty
+  // PFL /fixtures has no league name in its response — the only way to isolate
+  // Premier Liq is the `league_id` filter param. For season 72 (2025-2026) that
+  // id is 47; re-check it (via league_id sample fixtures) whenever the season changes.
+  protocolLeagueId: 47,
 };
 
 function defaultState() {

@@ -31,6 +31,9 @@ export default function SettingsPanel({
   const [testMatchId, setTestMatchId] = useState('');
   const [protoMsg, setProtoMsg] = useState(null);
   const [seasons, setSeasons] = useState([]);
+  const [sendInclude, setSendInclude] = useState(
+    settings.include || { players: true, lineups: true, fixtures: true }
+  );
 
   useEffect(() => {
     api.getSeasons().then(setSeasons).catch(() => setSeasons([]));
@@ -200,6 +203,20 @@ export default function SettingsPanel({
           />
         </label>
 
+        <label className="field">
+          Premyer Liqa ID (yalnız bu liqanın protokolları göndərilir)
+          <input
+            type="number"
+            value={local.protocolLeagueId ?? 47}
+            onChange={(e) => patch({ protocolLeagueId: Number(e.target.value) })}
+          />
+        </label>
+        <p className="hint">
+          PFL təqvim API-si liqa adını göstərmir, yalnız <code>league_id</code> filtri var.
+          Cari mövsüm (#{local.seasonId}) üçün Premyer Liqa ID-si <strong>47</strong>-dir.
+          Mövsüm dəyişəndə bu dəyəri yenidən yoxlamaq lazım ola bilər.
+        </p>
+
         <button className="btn primary" onClick={save} disabled={busy}>
           Parametrləri yadda saxla
         </button>
@@ -322,7 +339,33 @@ export default function SettingsPanel({
       <section className="card">
         <h3>İndi göndər</h3>
         <p className="hint">Cari (redaktə edilmiş) məlumatı dərhal göndərir.</p>
-        <button className="btn send" onClick={onSendNow} disabled={busy}>
+
+        <fieldset className="includes">
+          <legend>Nə göndərilsin</legend>
+          {[
+            ['players', 'Futbolçular'],
+            ['lineups', 'Heyətlər'],
+            ['fixtures', 'Təqvim'],
+          ].map(([k, lbl]) => (
+            <label key={k}>
+              <input
+                type="checkbox"
+                checked={!!sendInclude[k]}
+                onChange={() =>
+                  setSendInclude((s) => ({ ...s, [k]: !s[k] }))
+                }
+              />
+              {lbl}
+            </label>
+          ))}
+        </fieldset>
+
+        <button
+          className="btn send"
+          style={{ marginTop: 10 }}
+          onClick={() => onSendNow(sendInclude)}
+          disabled={busy || !Object.values(sendInclude).some(Boolean)}
+        >
           {busy ? 'Göndərilir…' : '✉ İndi göndər'}
         </button>
 

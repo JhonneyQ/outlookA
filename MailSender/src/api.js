@@ -38,6 +38,7 @@ export const api = {
   sendNow: (payload) => request('/send', { method: 'POST', body: payload || {} }),
   reset: () => request('/reset', { method: 'POST' }),
   getSeasons: () => request('/seasons'),
+  getPremierMatchIds: () => request('/premier-fixtures'),
   refresh: (payload) => request('/refresh', { method: 'POST', body: payload || { what: 'all' } }),
   // Match protocol (75-min-before-kickoff notifications)
   getProtocol: (matchId, minute) =>

@@ -106,10 +106,10 @@ export default function App() {
     }
   };
 
-  const sendNow = async () => {
+  const sendNow = async (include) => {
     setBusy(true);
     try {
-      const r = await api.sendNow();
+      const r = await api.sendNow(include ? { include } : {});
       flash(`Göndərildi → ${r.to.join(', ')}`);
       setStatus((s) => ({ ...s, lastSend: r }));
     } catch (err) {

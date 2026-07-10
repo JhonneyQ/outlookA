@@ -17,7 +17,7 @@ import {
   runProtocolWatch,
 } from './protocolWatcher.js';
 import { refresh } from './refresh.js';
-import { fetchSeasons, fetchMatchProtocol, pflConfigured } from './pflClient.js';
+import { fetchSeasons, fetchFixtures, fetchMatchProtocol, pflConfigured } from './pflClient.js';
 import { sendMatchProtocol } from './service.js';
 import { mailProvider } from './mailer.js';
 import { graphConfigured } from './graphMailer.js';
@@ -74,6 +74,22 @@ app.get('/api/status', (_req, res) =>
 app.get('/api/seasons', async (_req, res) => {
   try {
     res.json(await fetchSeasons());
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// Live Premier Liq matchIds — used only to filter the Protocols tab client-side.
+// PFL's /fixtures response has no league field, so `league_id` is the only way
+// to know which matches belong to Premier Liq; this doesn't touch the stored
+// (unfiltered, all-leagues) fixtures used elsewhere.
+app.get('/api/premier-fixtures', async (req, res) => {
+  try {
+    const s = store.get('settings');
+    const seasonId = req.query.seasonId ? Number(req.query.seasonId) : s.seasonId;
+    const leagueId = req.query.leagueId ? Number(req.query.leagueId) : s.protocolLeagueId;
+    const { fixtures } = await fetchFixtures({ seasonId, leagueId });
+    res.json({ matchIds: fixtures.map((f) => f.matchId) });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

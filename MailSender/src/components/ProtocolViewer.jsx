@@ -4,7 +4,7 @@
 // you can save that JSON, edit it, and re-send it by e-mail. A saved (edited)
 // copy is always preferred over the live PFL version.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 
 const STATUS_LABEL = {
@@ -26,6 +26,9 @@ const EVENT_ICON = {
 export default function ProtocolViewer({ fixtures, flash, onSent }) {
   const [search, setSearch] = useState('');
   const [onlyFinished, setOnlyFinished] = useState(true);
+  const [onlyPremier, setOnlyPremier] = useState(true);
+  const [premierIds, setPremierIds] = useState(null); // null = not loaded yet
+  const [premierErr, setPremierErr] = useState(null);
   const [selected, setSelected] = useState(null);
   const [protocol, setProtocol] = useState(null);
   const [source, setSource] = useState('live'); // 'live' | 'stored'
@@ -42,11 +45,22 @@ export default function ProtocolViewer({ fixtures, flash, onSent }) {
   // Recipient(s) for the test send — typed per send, never hardcoded.
   const [mailTo, setMailTo] = useState('');
 
+  // PFL fixtures carry no league field, so the Premier Liq filter is done by
+  // fetching the live matchId set for the configured league (settings ->
+  // protocolLeagueId) and intersecting it with the already-loaded fixtures list.
+  useEffect(() => {
+    api
+      .getPremierMatchIds()
+      .then((r) => setPremierIds(new Set(r.matchIds)))
+      .catch((err) => setPremierErr(err.message));
+  }, []);
+
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (fixtures || [])
       .filter((f) => f.matchId)
       .filter((f) => (onlyFinished ? f.status === 'finished' : true))
+      .filter((f) => (onlyPremier && premierIds ? premierIds.has(f.matchId) : true))
       .filter(
         (f) =>
           !q ||
@@ -55,7 +69,7 @@ export default function ProtocolViewer({ fixtures, flash, onSent }) {
       )
       .slice()
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  }, [fixtures, search, onlyFinished]);
+  }, [fixtures, search, onlyFinished, onlyPremier, premierIds]);
 
   const open = async (f) => {
     setSelected(f.matchId);
@@ -193,7 +207,19 @@ export default function ProtocolViewer({ fixtures, flash, onSent }) {
             />
             Yalnız bitmiş
           </label>
+          <label className="chk" title="Yalnız Parametrlərdə seçilmiş Premyer Liqa ID-sinə uyğun oyunlar">
+            <input
+              type="checkbox"
+              checked={onlyPremier}
+              onChange={(e) => setOnlyPremier(e.target.checked)}
+              disabled={!premierIds && !premierErr}
+            />
+            Yalnız Premyer Liqa
+          </label>
         </div>
+        {premierErr && (
+          <p className="warn">Premyer Liqa filtri yüklənmədi: {premierErr}</p>
+        )}
         <div className="protocol-rows">
           {list.length === 0 && (
             <p className="empty">Oyun tapılmadı. Əvvəlcə “PFL-dən yenilə” edin.</p>
