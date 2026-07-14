@@ -204,7 +204,7 @@ export default function SettingsPanel({
         </label>
 
         <label className="field">
-          Premyer Liqa ID (yalnız bu liqanın protokolları göndərilir)
+          Premyer Liqa ID (bütün datalar — futbolçular, təqvim, heyətlər, protokollar — bu liqaya filtrlənir)
           <input
             type="number"
             value={local.protocolLeagueId ?? 47}
@@ -212,9 +212,11 @@ export default function SettingsPanel({
           />
         </label>
         <p className="hint">
-          PFL təqvim API-si liqa adını göstərmir, yalnız <code>league_id</code> filtri var.
+          PFL API-si liqa adını göstərmir, yalnız <code>league_id</code> filtri var.
           Cari mövsüm (#{local.seasonId}) üçün Premyer Liqa ID-si <strong>47</strong>-dir.
-          Mövsüm dəyişəndə bu dəyəri yenidən yoxlamaq lazım ola bilər.
+          Mövsüm dəyişəndə bu dəyəri yenidən yoxlamaq lazım ola bilər. "PFL-dən yenilə"
+          düyməsi basılan kimi futbolçular, təqvim və heyətlər də bu ID-yə görə filtrlənir —
+          e-poçt də (həm gündəlik icmal, həm protokol bildirişləri) yalnız bu datanı göndərir.
         </p>
 
         <button className="btn primary" onClick={save} disabled={busy}>

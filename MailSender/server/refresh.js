@@ -9,27 +9,36 @@ import {
 } from './pflClient.js';
 
 // Refresh one or more datasets. `what` ∈ 'players' | 'fixtures' | 'lineups' | 'all'.
-// Lineups depend on fixtures, so refreshing lineups (or 'all') will fetch
-// fixtures first when needed.
+// Lineups and players both depend on fixtures (lineups for match targets,
+// players for the Premier Liq club whitelist), so refreshing either of them
+// (or 'all') will fetch fixtures first.
 export async function refresh(what = 'all', opts = {}) {
   const settings = store.get('settings');
   const seasonId = opts.seasonId ?? settings.seasonId;
+  const leagueId = settings.protocolLeagueId; // Premier Liq id — restricts every dataset below to this league
   const lineupLimit = opts.lineupLimit ?? settings.lineupLimit ?? 20;
 
   const summary = {};
 
-  if (what === 'players' || what === 'all') {
-    const { players, truncated } = await fetchPlayers();
-    store.set('players', players);
-    summary.players = { count: players.length, truncated };
-  }
-
+  // Fixtures double as the Premier Liq club roster: PFL's /fixtures is the
+  // only endpoint that accepts a league_id filter, so players (whose API
+  // shape has no league field at all) are kept only if their `club` matches
+  // a home/away team name from these (already league-filtered) fixtures.
+  // Fetched whenever players, fixtures, or lineups are requested.
   let fixtures = store.get('fixtures');
-  if (what === 'fixtures' || what === 'lineups' || what === 'all') {
-    const res = await fetchFixtures({ seasonId });
+  if (what === 'players' || what === 'fixtures' || what === 'lineups' || what === 'all') {
+    const res = await fetchFixtures({ seasonId, leagueId });
     fixtures = res.fixtures;
     store.set('fixtures', fixtures);
     summary.fixtures = { count: fixtures.length, truncated: res.truncated, seasonId };
+  }
+
+  if (what === 'players' || what === 'all') {
+    const premierClubs = new Set(fixtures.flatMap((f) => [f.homeTeam, f.awayTeam]).filter(Boolean));
+    const { players: fetched, truncated } = await fetchPlayers();
+    const players = fetched.filter((p) => premierClubs.has(p.club));
+    store.set('players', players);
+    summary.players = { count: players.length, truncated, totalFetched: fetched.length };
   }
 
   if (what === 'lineups' || what === 'all') {

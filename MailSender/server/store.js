@@ -31,6 +31,10 @@ const DEFAULT_SETTINGS = {
   // PFL /fixtures has no league name in its response — the only way to isolate
   // Premier Liq is the `league_id` filter param. For season 72 (2025-2026) that
   // id is 47; re-check it (via league_id sample fixtures) whenever the season changes.
+  // Used to scope EVERY refreshed dataset to Premier Liq — fixtures/lineups via
+  // this param directly, players by cross-referencing club names against the
+  // filtered fixtures (see refresh.js) — so the digest + protocol e-mails only
+  // ever cover Premier Liq.
   protocolLeagueId: 47,
 };
 
