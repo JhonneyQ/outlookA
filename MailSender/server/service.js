@@ -6,7 +6,7 @@ import { buildEmailHtml, buildProtocolEmailHtml, sendMail } from './mailer.js';
 import { refresh } from './refresh.js';
 import { pflConfigured } from './pflClient.js';
 
-export async function composeAndSend({ recipients, include, autoRefresh } = {}) {
+export async function composeAndSend({ recipients, include, autoRefresh, premierOnly } = {}) {
   let settings = store.get('settings');
 
   // For unattended (scheduled) sends, optionally pull fresh PFL data first so
@@ -32,10 +32,18 @@ export async function composeAndSend({ recipients, include, autoRefresh } = {}) 
     throw Object.assign(new Error(result.error), { result });
   }
 
-  const html = buildEmailHtml(
-    { players: state.players, lineups: state.lineups, fixtures: state.fixtures },
-    inc
-  );
+  // Safety net for manual edits: a normal PFL refresh already scopes fixtures
+  // (via league_id) and players (via club whitelist) to Premier Liq only, but
+  // rows added/edited by hand in the tables aren't re-checked. When requested,
+  // re-apply that same club whitelist here so a stray non-Premier-Liq row
+  // can't slip into a manual send.
+  let { players, fixtures } = state;
+  if (premierOnly) {
+    const premierClubs = new Set(fixtures.flatMap((f) => [f.homeTeam, f.awayTeam]).filter(Boolean));
+    players = players.filter((p) => premierClubs.has(p.club));
+  }
+
+  const html = buildEmailHtml({ players, lineups: state.lineups, fixtures }, inc);
   const subject = `${settings.subjectPrefix || ''} Məlumat yeniləməsi — ${new Date().toLocaleDateString('az-AZ')}`.trim();
 
   try {

@@ -91,6 +91,9 @@ async function getAllPages(path, params = {}, { maxPages = 60, perPage = 100 } =
 
 // --- Field mapping: PFL -> internal app shapes -----------------------------
 
+// PFL sends birthDate as either a bare "YYYY-MM-DD" or a full ISO timestamp
+// ("1995-09-28T00:00:00.000Z") depending on the player record — slicing to
+// the first 10 chars normalizes both to a plain date.
 const mapPlayer = (p) => ({
   id: p.id,
   firstName: (p.firstName || '').trim(),
@@ -98,6 +101,8 @@ const mapPlayer = (p) => ({
   position: p.position || '',
   club: p.club || '',
   jerseyNumber: p.shirtNumber ?? 0,
+  nationality: p.nationality || '',
+  birthDate: (p.birthDate || '').slice(0, 10),
   photo: p.photo || '',
 });
 

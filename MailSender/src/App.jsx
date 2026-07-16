@@ -21,6 +21,8 @@ const PLAYER_COLS = [
   { key: 'position', label: 'Mövqe' },
   { key: 'club', label: 'Klub' },
   { key: 'jerseyNumber', label: '№', type: 'number', width: '70px' },
+  { key: 'nationality', label: 'Vətəndaşlıq' },
+  { key: 'birthDate', label: 'Doğum tarixi', width: '120px' },
   { key: 'photo', label: 'Foto (URL)' },
 ];
 
@@ -34,7 +36,8 @@ const FIXTURE_COLS = [
 
 const newPlayer = (rows) => ({
   id: Math.max(0, ...rows.map((r) => r.id || 0)) + 1,
-  firstName: '', lastName: '', position: '', club: '', jerseyNumber: 0, photo: '',
+  firstName: '', lastName: '', position: '', club: '', jerseyNumber: 0,
+  nationality: '', birthDate: '', photo: '',
 });
 const newFixture = () => ({ round: 1, date: '', time: '', homeTeam: '', awayTeam: '' });
 
@@ -106,10 +109,10 @@ export default function App() {
     }
   };
 
-  const sendNow = async (include) => {
+  const sendNow = async (payload) => {
     setBusy(true);
     try {
-      const r = await api.sendNow(include ? { include } : {});
+      const r = await api.sendNow(payload || {});
       flash(`Göndərildi → ${r.to.join(', ')}`);
       setStatus((s) => ({ ...s, lastSend: r }));
     } catch (err) {

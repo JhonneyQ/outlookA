@@ -34,6 +34,7 @@ export default function SettingsPanel({
   const [sendInclude, setSendInclude] = useState(
     settings.include || { players: true, lineups: true, fixtures: true }
   );
+  const [premierOnly, setPremierOnly] = useState(true);
 
   useEffect(() => {
     api.getSeasons().then(setSeasons).catch(() => setSeasons([]));
@@ -362,10 +363,23 @@ export default function SettingsPanel({
           ))}
         </fieldset>
 
+        <label className="switch-row">
+          <input
+            type="checkbox"
+            checked={premierOnly}
+            onChange={(e) => setPremierOnly(e.target.checked)}
+          />
+          <span>Yalnız Premyer Liqa məlumatı göndər</span>
+        </label>
+        <p className="hint">
+          Aktiv olanda, klubu cari təqvimdəki (Premyer Liqa) komandalarla uyğun gəlməyən
+          futbolçular (məs. əl ilə əlavə edilmiş sətirlər) e-poçtdan çıxarılır.
+        </p>
+
         <button
           className="btn send"
           style={{ marginTop: 10 }}
-          onClick={() => onSendNow(sendInclude)}
+          onClick={() => onSendNow({ include: sendInclude, premierOnly })}
           disabled={busy || !Object.values(sendInclude).some(Boolean)}
         >
           {busy ? 'Göndərilir…' : '✉ İndi göndər'}
