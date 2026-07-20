@@ -57,12 +57,13 @@ function playersTable(players) {
         <td style="text-align:center">${esc(p.jerseyNumber)}</td>
         <td>${esc(p.nationality)}</td>
         <td>${esc(p.birthDate)}</td>
+        <td>${p.photo ? `<a href="${esc(p.photo)}" style="color:#1d4ed8">Foto</a>` : ''}</td>
       </tr>`
     )
     .join('');
   return section(
     'Futbolçular bazası',
-    `<table>${tableHead(['ID', 'Ad', 'Soyad', 'Mövqe', 'Klub', '№', 'Vətəndaşlıq', 'Doğum tarixi'])}<tbody>${rows}</tbody></table>`
+    `<table>${tableHead(['ID', 'Ad', 'Soyad', 'Mövqe', 'Klub', '№', 'Vətəndaşlıq', 'Doğum tarixi', 'Foto'])}<tbody>${rows}</tbody></table>`
   );
 }
 
