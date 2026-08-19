@@ -7,12 +7,18 @@
 // recording each matchId so a match is never e-mailed twice.
 
 import cron from 'node-cron';
+import crypto from 'node:crypto';
 import { store } from './store.js';
 import { fetchFixtures, fetchMatchProtocol, pflConfigured } from './pflClient.js';
 import { sendMatchProtocol } from './service.js';
 
 let task = null;
 let running = false; // guards against overlapping polls on slow networks
+
+// Fingerprints the live PFL protocol content so later polls can tell whether
+// PFL itself changed the data (mapProtocolPlayer/mapProtocolEvent output is
+// built in a fixed key order, so a plain stringify is a stable fingerprint).
+const hashProtocol = (p) => crypto.createHash('sha256').update(JSON.stringify(p)).digest('hex');
 
 // PFL kickoff times are Azerbaijan local time (UTC+4). Build an absolute
 // instant from the fixture's date + time so the math is server-timezone-proof.
@@ -76,6 +82,9 @@ export async function runProtocolWatch({ force = false } = {}) {
           if (!live.published) continue;
           protocol = live.protocol;
           store.setProtocol(f.matchId, protocol);
+          // Baseline fingerprint so later polls can detect PFL editing this
+          // match's data (see the re-check pass below).
+          store.setProtocolHash(f.matchId, hashProtocol(live.protocol));
         }
         await sendMatchProtocol({
           protocol,
@@ -89,7 +98,53 @@ export async function runProtocolWatch({ force = false } = {}) {
       }
     }
 
-    const summary = { at: new Date().toISOString(), checked: candidates.length, sent };
+    // --- Re-check already-sent matches for PFL-side corrections ------------
+    // The federation sometimes edits a protocol after the fact (a card, an
+    // official, a lineup fix). Re-fetch live PFL data for recently-sent
+    // matches and resend automatically if its content actually changed.
+    const recheckMs = (s.protocolRecheckHours ?? 24) * 3_600_000;
+    const recheckLimit = s.protocolRecheckLimit ?? 20;
+    const recheckCandidates = fixtures
+      .filter((f) => f.matchId && store.isProtocolNotified(f.matchId))
+      .map((f) => ({ f, ko: kickoffInstant(f) }))
+      .filter(({ ko }) => ko && now - ko.getTime() > -graceMs && now - ko.getTime() <= recheckMs)
+      .sort((a, b) => b.ko.getTime() - a.ko.getTime()) // most recently finished first
+      .slice(0, recheckLimit)
+      .map(({ f }) => f);
+
+    const resent = [];
+    for (const f of recheckCandidates) {
+      try {
+        const live = await fetchMatchProtocol(f.matchId, { minute: s.protocolMinute ?? 75 });
+        if (!live.published) continue;
+        const hash = hashProtocol(live.protocol);
+        const prevHash = store.getProtocolHash(f.matchId);
+        if (!prevHash) {
+          store.setProtocolHash(f.matchId, hash); // no baseline yet — just record one
+          continue;
+        }
+        if (hash === prevHash) continue; // unchanged since last check
+
+        store.setProtocol(f.matchId, live.protocol);
+        store.setProtocolHash(f.matchId, hash);
+        await sendMatchProtocol({
+          protocol: live.protocol,
+          recipients: recipientsFor(s),
+          subjectPrefix: s.subjectPrefix,
+        });
+        resent.push(f.matchId);
+      } catch (err) {
+        console.warn(`[protocol-watch] recheck ${f.matchId}:`, err.message);
+      }
+    }
+
+    const summary = {
+      at: new Date().toISOString(),
+      checked: candidates.length,
+      sent,
+      rechecked: recheckCandidates.length,
+      resent,
+    };
     store.set('lastProtocolWatch', summary);
     return summary;
   } finally {
@@ -121,6 +176,8 @@ export function rescheduleProtocolWatch() {
     runProtocolWatch()
       .then((r) => {
         if (r?.sent?.length) console.log('[protocol-watch] sent protocol for matches', r.sent.join(', '));
+        if (r?.resent?.length)
+          console.log('[protocol-watch] PFL edited & resent protocol for matches', r.resent.join(', '));
       })
       .catch((err) => console.error('[protocol-watch] poll failed:', err.message));
   });

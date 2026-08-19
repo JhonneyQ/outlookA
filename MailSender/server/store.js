@@ -28,6 +28,11 @@ const DEFAULT_SETTINGS = {
   protocolLeadMin: 90, // start watching a match this many minutes before kickoff
   protocolMinute: 75, // snapshot `minute` query param sent to the protocol endpoint
   protocolRecipients: [], // optional override; falls back to `recipients` when empty
+  // How long after kickoff to keep re-checking PFL for corrections to a match
+  // already e-mailed (federation edits lineups/officials/cards after review),
+  // and how many such matches to re-fetch from PFL per poll.
+  protocolRecheckHours: 24,
+  protocolRecheckLimit: 20,
   // PFL /fixtures has no league name in its response — the only way to isolate
   // Premier Liq is the `league_id` filter param. For season 72 (2025-2026) that
   // id is 47; re-check it (via league_id sample fixtures) whenever the season changes.
@@ -52,6 +57,10 @@ function defaultState() {
     lastProtocolSend: null, // { at, ok, to, matchId, error }
     lastProtocolWatch: null, // { at, checked, sent: [matchId] }
     notifiedProtocols: [], // matchIds already e-mailed, so we never double-send
+    // Content hash of the live PFL protocol as of the last send/check, keyed by
+    // matchId — lets the watcher notice PFL editing a match's data afterwards
+    // (e.g. a disciplinary correction) so it can automatically resend.
+    protocolHashes: {},
   };
 }
 
@@ -122,15 +131,24 @@ export const store = {
     return true;
   },
   isProtocolNotified(matchId) {
-    return (state.notifiedProtocols || []).includes(matchId);
+    return (state.notifiedProtocols || []).some((id) => String(id) === String(matchId));
   },
   markProtocolNotified(matchId) {
     if (!state.notifiedProtocols) state.notifiedProtocols = [];
-    if (!state.notifiedProtocols.includes(matchId)) {
+    if (!state.notifiedProtocols.some((id) => String(id) === String(matchId))) {
       state.notifiedProtocols.push(matchId);
       persist();
     }
     return state.notifiedProtocols;
+  },
+  getProtocolHash(matchId) {
+    return state.protocolHashes?.[String(matchId)] || null;
+  },
+  setProtocolHash(matchId, hash) {
+    if (!state.protocolHashes) state.protocolHashes = {};
+    state.protocolHashes[String(matchId)] = hash;
+    persist();
+    return hash;
   },
   reset() {
     state = defaultState();
