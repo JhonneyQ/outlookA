@@ -153,7 +153,8 @@ export default function SettingsPanel({
         <h3>Protokol bildirişləri (75 dəq əvvəl)</h3>
         <p className="hint">
           Oyundan əvvəl protokol (start heyət, ehtiyat, məşqçilər, hakimlər) yayımlanan kimi
-          avtomatik Outlook məktubu göndərir. Hər oyun üçün yalnız bir dəfə göndərilir.
+          avtomatik Outlook məktubu göndərir. Sonra protokolu hər 4 saatdan bir düzəlişə yoxlayır
+          və dəyişiklik olduqda yenidən göndərir.
         </p>
         <label className="switch-row">
           <input
@@ -191,6 +192,18 @@ export default function SettingsPanel({
             max={240}
             value={local.protocolLeadMin ?? 90}
             onChange={(e) => patch({ protocolLeadMin: Number(e.target.value) })}
+          />
+        </label>
+
+        <label className="field">
+          Protokolu neçə saatdan bir düzəlişə yoxlasın
+          <input
+            type="number"
+            min={1}
+            max={72}
+            step={1}
+            value={local.protocolRecheckIntervalHours ?? 4}
+            onChange={(e) => patch({ protocolRecheckIntervalHours: Number(e.target.value) })}
           />
         </label>
 

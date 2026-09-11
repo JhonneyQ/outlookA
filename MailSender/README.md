@@ -79,6 +79,9 @@ Open http://localhost:3001.
    - **Göndərmədən əvvəl PFL-dən avtomatik yenilə** (on by default): scheduled
      sends re-pull fresh PFL data first. Turn it **off** if you want scheduled
      sends to use your manual edits instead of overwriting them.
+   - Protocol notifications send once when published, then check for PFL corrections
+     every 4 hours by default and send again only when the protocol changed. The
+     interval can be changed in the protocol watcher settings.
 
 > Manual "İndi göndər" never auto-refreshes, so it always sends exactly what you
 > see and edited. Only the scheduler re-pulls (when the toggle above is on).

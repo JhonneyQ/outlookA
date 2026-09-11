@@ -92,6 +92,10 @@ export async function runProtocolWatch({ force = false } = {}) {
           subjectPrefix: s.subjectPrefix,
         });
         store.markProtocolNotified(f.matchId);
+        store.setProtocolNextCheckAt(
+          f.matchId,
+          new Date(now + (s.protocolRecheckIntervalHours ?? 4) * 3_600_000).toISOString()
+        );
         sent.push(f.matchId);
       } catch (err) {
         console.warn(`[protocol-watch] match ${f.matchId}:`, err.message);
@@ -108,6 +112,10 @@ export async function runProtocolWatch({ force = false } = {}) {
       .filter((f) => f.matchId && store.isProtocolNotified(f.matchId))
       .map((f) => ({ f, ko: kickoffInstant(f) }))
       .filter(({ ko }) => ko && now - ko.getTime() > -graceMs && now - ko.getTime() <= recheckMs)
+      .filter(({ f }) => {
+        const nextCheckAt = store.getProtocolNextCheckAt(f.matchId);
+        return !nextCheckAt || Date.parse(nextCheckAt) <= now;
+      })
       .sort((a, b) => b.ko.getTime() - a.ko.getTime()) // most recently finished first
       .slice(0, recheckLimit)
       .map(({ f }) => f);
@@ -121,17 +129,31 @@ export async function runProtocolWatch({ force = false } = {}) {
         const prevHash = store.getProtocolHash(f.matchId);
         if (!prevHash) {
           store.setProtocolHash(f.matchId, hash); // no baseline yet — just record one
+          store.setProtocolNextCheckAt(
+            f.matchId,
+            new Date(now + (s.protocolRecheckIntervalHours ?? 4) * 3_600_000).toISOString()
+          );
           continue;
         }
-        if (hash === prevHash) continue; // unchanged since last check
+        if (hash === prevHash) {
+          store.setProtocolNextCheckAt(
+            f.matchId,
+            new Date(now + (s.protocolRecheckIntervalHours ?? 4) * 3_600_000).toISOString()
+          );
+          continue;
+        } // unchanged since last check
 
         store.setProtocol(f.matchId, live.protocol);
-        store.setProtocolHash(f.matchId, hash);
         await sendMatchProtocol({
           protocol: live.protocol,
           recipients: recipientsFor(s),
           subjectPrefix: s.subjectPrefix,
         });
+        store.setProtocolHash(f.matchId, hash);
+        store.setProtocolNextCheckAt(
+          f.matchId,
+          new Date(now + (s.protocolRecheckIntervalHours ?? 4) * 3_600_000).toISOString()
+        );
         resent.push(f.matchId);
       } catch (err) {
         console.warn(`[protocol-watch] recheck ${f.matchId}:`, err.message);

@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
   // already e-mailed (federation edits lineups/officials/cards after review),
   // and how many such matches to re-fetch from PFL per poll.
   protocolRecheckHours: 24,
+  protocolRecheckIntervalHours: 4,
   protocolRecheckLimit: 20,
   // PFL /fixtures has no league name in its response — the only way to isolate
   // Premier Liq is the `league_id` filter param. For season 72 (2025-2026) that
@@ -61,6 +62,8 @@ function defaultState() {
     // matchId — lets the watcher notice PFL editing a match's data afterwards
     // (e.g. a disciplinary correction) so it can automatically resend.
     protocolHashes: {},
+    // Earliest time each notified match may be checked again for a correction.
+    protocolNextCheckAt: {},
   };
 }
 
@@ -149,6 +152,15 @@ export const store = {
     state.protocolHashes[String(matchId)] = hash;
     persist();
     return hash;
+  },
+  getProtocolNextCheckAt(matchId) {
+    return state.protocolNextCheckAt?.[String(matchId)] || null;
+  },
+  setProtocolNextCheckAt(matchId, timestamp) {
+    if (!state.protocolNextCheckAt) state.protocolNextCheckAt = {};
+    state.protocolNextCheckAt[String(matchId)] = timestamp;
+    persist();
+    return timestamp;
   },
   reset() {
     state = defaultState();
